@@ -21,6 +21,7 @@ package com.solace.spring.boot.autoconfigure;
 import javax.jms.ConnectionFactory;
 
 import com.solace.services.core.model.SolaceServiceCredentials;
+import com.solace.spring.cloud.core.SolaceServiceCredentialsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,30 +30,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jms.JmsAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.Cloud;
-import org.springframework.cloud.CloudFactory;
-import org.springframework.cloud.service.ServiceInfo;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import com.solace.spring.cloud.core.SolaceMessagingInfo;
 import com.solacesystems.jms.SolConnectionFactory;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jndi.JndiTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
 @AutoConfigureBefore(JmsAutoConfiguration.class)
-@ConditionalOnClass({ ConnectionFactory.class, SolConnectionFactory.class, CloudFactory.class })
+@ConditionalOnClass({ ConnectionFactory.class, SolConnectionFactory.class })
 @ConditionalOnMissingBean({ ConnectionFactory.class, JndiTemplate.class })
 @Conditional(CloudCondition.class)
 @EnableConfigurationProperties(SolaceJmsProperties.class)
 public class SolaceJmsAutoCloudConfiguration extends SolaceJmsAutoConfigurationBase {
 
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(SolaceJmsAutoCloudConfiguration.class);
-	private CloudFactory cloudFactory = new CloudFactory();
 
 	@Autowired
 	public SolaceJmsAutoCloudConfiguration(SolaceJmsProperties properties) {
@@ -61,63 +55,12 @@ public class SolaceJmsAutoCloudConfiguration extends SolaceJmsAutoConfigurationB
 
 	@Override
 	SolaceServiceCredentials findFirstSolaceServiceCredentialsImpl() {
-		return findFirstSolaceMessagingInfo();
-	}
-
-	/**
-	 * Gets the first detected {@link SolaceMessagingInfo}.
-	 *
-	 * @deprecated As of 1.1.0, usage of {@link SolaceMessagingInfo}
-	 * was replaced by its interface, {@link SolaceServiceCredentials}.
-	 * Use {@link #findFirstSolaceServiceCredentials()} instead.
-	 *
-	 * @return If in a Cloud Foundry environment, a Solace PubSub+ service is returned, otherwise null
-	 */
-	@Deprecated
-	@Bean @Primary
-	public SolaceMessagingInfo findFirstSolaceMessagingInfo() {
-		SolaceMessagingInfo solacemessaging = null;
-		Cloud cloud = cloudFactory.getCloud();
-		List<ServiceInfo> serviceInfos = cloud.getServiceInfos();
-		for (ServiceInfo serviceInfo : serviceInfos) {
-			// Stop when we find the first one...
-			// TODO: Consider annotation driven selection, or sorted plan based
-			// selection
-			if (serviceInfo instanceof SolaceMessagingInfo) {
-				solacemessaging = (SolaceMessagingInfo) serviceInfo;
-				logger.info("Found Cloud Solace PubSub+ Service Instance Id: " + solacemessaging.getId());
-				break;
-			}
-		}
-
-		if (solacemessaging == null) {
-			// The CloudCondition should shield from this happening, should not
-			// arrive to this state.
-			logger.error("Cloud Solace PubSub+ Info was not found, cannot auto-configure");
-			throw new IllegalStateException(
-					"Unable to create SolConnectionFactory did not find SolaceMessagingInfo in the current cloud environment");
-		}
-
-		return solacemessaging;
+		List<SolaceServiceCredentials> credentials = SolaceServiceCredentialsFactory.getAllFromCloudFoundry();
+		return credentials.size() == 0 ? null : credentials.get(0);
 	}
 
 	@Override
 	public List<SolaceServiceCredentials> getSolaceServiceCredentials() {
-		return new ArrayList<SolaceServiceCredentials>(getSolaceMessagingInfos());
-	}
-
-	@Deprecated
-	@Override
-	public List<SolaceMessagingInfo> getSolaceMessagingInfos() {
-		List<SolaceMessagingInfo> solaceMessagingInfoList = new ArrayList<>();
-		Cloud cloud = cloudFactory.getCloud();
-
-		List<ServiceInfo> serviceInfos = cloud.getServiceInfos();
-		for (ServiceInfo serviceInfo : serviceInfos) {
-			if (serviceInfo instanceof SolaceMessagingInfo) {
-				solaceMessagingInfoList.add((SolaceMessagingInfo) serviceInfo);
-			}
-		}
-		return solaceMessagingInfoList;
+		return SolaceServiceCredentialsFactory.getAllFromCloudFoundry();
 	}
 }

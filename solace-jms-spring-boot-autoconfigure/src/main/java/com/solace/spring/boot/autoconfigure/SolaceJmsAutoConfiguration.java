@@ -22,6 +22,7 @@ import javax.jms.ConnectionFactory;
 
 import com.solace.services.core.loader.SolaceCredentialsLoader;
 import com.solace.services.core.model.SolaceServiceCredentials;
+import com.solace.spring.cloud.core.SolaceServiceCredentialsFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -59,5 +60,4 @@ public class SolaceJmsAutoConfiguration extends SolaceJmsAutoConfigurationBase {
     public List<SolaceServiceCredentials> getSolaceServiceCredentials() {
         return new ArrayList<>(solaceServicesInfoLoader.getAllSolaceServiceInfo().values());
     }
-
 }

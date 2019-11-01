@@ -2,7 +2,7 @@ package com.solace.spring.boot.autoconfigure;
 
 import com.solace.services.core.model.SolaceServiceCredentials;
 import com.solace.services.core.model.SolaceServiceCredentialsImpl;
-import com.solace.spring.cloud.core.SolaceMessagingInfo;
+import com.solace.spring.cloud.core.SolaceServiceCredentialsFactory;
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SolConnectionFactoryImpl;
 import com.solacesystems.jms.SpringSolJmsConnectionFactoryCloudFactory;
@@ -83,16 +83,13 @@ abstract class SolaceJmsAutoConfigurationBase implements SpringSolJmsConnectionF
         }
     }
 
-    @Override @Deprecated
-    public List<SolaceMessagingInfo> getSolaceMessagingInfos() {
+    private SolaceServiceCredentials findSolaceServiceCredentialsById(String id) {
+        for (SolaceServiceCredentials credentials : getSolaceServiceCredentials()) {
+            if (credentials.getId().equals(id)) return credentials;
+        }
         return null;
     }
 
-    private SolaceServiceCredentials findSolaceServiceCredentialsById(String id) {
-        for (SolaceServiceCredentials credentials : getSolaceServiceCredentials())
-            if (credentials.getId().equals(id)) return credentials;
-        return null;
-    }
 
     void setProperties(SolaceJmsProperties properties) {
         this.properties = properties;
@@ -135,7 +132,7 @@ abstract class SolaceJmsAutoConfigurationBase implements SpringSolJmsConnectionF
 
 	@Override
 	public JndiTemplate getJndiTemplate(String id) {
-	    SolaceServiceCredentials solaceServiceCredentials = findSolaceServiceCredentialsById(id);
-	    return solaceServiceCredentials == null ? null : getJndiTemplate(solaceServiceCredentials);
+	    List<SolaceServiceCredentials> credentials = SolaceServiceCredentialsFactory.getAllFromCloudFoundry();
+	    return credentials.size() == 0 ? null : getJndiTemplate(credentials.get(0));
 	}
 }

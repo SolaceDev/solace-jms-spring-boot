@@ -19,7 +19,6 @@
 package com.solace.spring.boot.autoconfigure;
 
 import com.solace.services.core.model.SolaceServiceCredentials;
-import com.solace.spring.cloud.core.SolaceMessagingInfo;
 import com.solacesystems.jms.SolConnectionFactory;
 import com.solacesystems.jms.SpringSolJmsConnectionFactoryCloudFactory;
 import org.json.JSONObject;
@@ -67,7 +66,6 @@ public class SolaceJmsAutoCloudConfigurationTest<T> extends SolaceJmsAutoConfigu
         classes.add(ResolvableType.forClass(SpringSolJmsConnectionFactoryCloudFactory.class));
         classes.add(ResolvableType.forClass(SolConnectionFactory.class));
         classes.add(ResolvableType.forClass(SolaceServiceCredentials.class));
-        classes.add(ResolvableType.forClass(SolaceMessagingInfo.class));
         return getTestParameters(classes);
     }
 
@@ -150,8 +148,6 @@ public class SolaceJmsAutoCloudConfigurationTest<T> extends SolaceJmsAutoConfigu
 		assertNotNull(VCAP_SERVICES);
 		assertTrue(VCAP_SERVICES.contains("solace-pubsub"));
 
-		validateBackwardsCompatibility();
-
 		T bean = this.context.getBean(beanClass);
 		assertNotNull(bean);
 
@@ -213,8 +209,6 @@ public class SolaceJmsAutoCloudConfigurationTest<T> extends SolaceJmsAutoConfigu
                 String VCAP_SERVICES = env.getProperty("VCAP_SERVICES");
                 assertNotNull(VCAP_SERVICES);
                 assertTrue(VCAP_SERVICES.contains("solace-pubsub"));
-
-                validateBackwardsCompatibility();
 
                 T bean = this.context.getBean(beanClass);
                 assertNotNull(bean);
@@ -295,21 +289,5 @@ public class SolaceJmsAutoCloudConfigurationTest<T> extends SolaceJmsAutoConfigu
 		assertEquals("bob", solConnectionFactory.getUsername());
 		assertEquals("password", solConnectionFactory.getPassword());
 		assertFalse(solConnectionFactory.getDirectTransport());
-	}
-
-	private void validateBackwardsCompatibility() {
-		//Expects SolaceMessagingInfo bean to be annotated with @Primary
-
-		assertEquals(2, this.context.getBeanNamesForType(SolaceServiceCredentials.class).length);
-		assertEquals(2, this.context.getBeanNamesForType(SolaceMessagingInfo.class).length);
-		SolaceServiceCredentials ssc = this.context.getBean(SolaceServiceCredentials.class);
-		SolaceMessagingInfo smi = this.context.getBean(SolaceMessagingInfo.class);
-
-		//Primary child class always supersedes any parent
-		assertTrue(ssc.getClass().isAssignableFrom(SolaceMessagingInfo.class));
-		assertTrue(!ssc.getClass().isAssignableFrom(SolaceServiceCredentials.class));
-
-		assertTrue(smi.getClass().isAssignableFrom(SolaceMessagingInfo.class));
-		assertTrue(!smi.getClass().isAssignableFrom(SolaceServiceCredentials.class));
 	}
 }
